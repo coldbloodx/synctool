@@ -20,6 +20,7 @@ using namespace std;
 #include "strutils.h"
 #include "miscutils.h"
 #include "netutils.h"
+#include "logutils.h"
 #include "configparser.h"
 
 static string LAMPT(".lampt");
@@ -46,13 +47,13 @@ int SyncCommand::execute()
     string mppath(buff);
 
     ret = nfsutils::ismounted(host, sharedir, mppath);
-    cout << "here!!!!" << endl;
-    cout << "ret ismounted: " << ret << endl;
+    glogger << "here!!!!" << endl;
+    glogger << "ret ismounted: " << ret << endl;
 
     if(!ret)
     {
         ret = nfsutils::mountnfs(host, sharedir, mppath);
-        cout << "ret mount: " << ret << endl;
+        glogger << "ret mount: " << ret << endl;
 
         if(ret)
         {
@@ -68,7 +69,7 @@ int SyncCommand::execute()
     ret = gparser->getvalue("syncdir", syncdir);
     ret = fsutils::abspath(syncdir.c_str(), buff);
 
-    cout << "abspath: " << ret << endl;
+    glogger << "abspath: " << ret << endl;
     if(!ret)
     {
         nfsutils::umount(mppath);
@@ -77,7 +78,7 @@ int SyncCommand::execute()
     dest = buff; 
     opts = " -r  --preserve=mode ";
     cmd += src + dest + opts;
-    cout << "cmd: " << cmd << endl;
+    glogger << "cmd: " << cmd << endl;
     ret = system(cmd.c_str());
     nfsutils::umount(mppath, 1);
 
@@ -127,9 +128,9 @@ int PkgCommand::execute()
     }
 
     copy(ipkgs.begin(), ipkgs.end(), ostream_iterator<string>(cout, " "));
-    cout << endl;
+    glogger << endl;
     copy(rpkgs.begin(), rpkgs.end(), ostream_iterator<string>(cout, " "));
-    cout << endl;
+    glogger << endl;
 
     ret = 0;
     string ipkgstr;
@@ -138,8 +139,8 @@ int PkgCommand::execute()
     strutils::join(ipkgs, " ", ipkgstr);
     strutils::join(rpkgs, " ", rpkgstr);
 
-    cout << "ipkgstr:" << ipkgstr << endl;
-    cout << "rpkgstr:" << rpkgstr << endl;
+    glogger << "ipkgstr:" << ipkgstr << endl;
+    glogger << "rpkgstr:" << rpkgstr << endl;
 
     string cmd;
     if(!ipkgs.empty())
@@ -170,10 +171,10 @@ int PkgCommand::execute()
 
     }
 
-    cout << "pkg cmd:" << cmd << endl;
+    glogger << "pkg cmd:" << cmd << endl;
     ret = system(cmd.c_str());
 
-    cout << "pkgcmd ret:" << ret << endl;
+    glogger << "pkgcmd ret:" << ret << endl;
 
     return miscutils::getexitcode(ret);
 }
@@ -208,14 +209,14 @@ int UpdateCommand::execute()
     }
 
     copy(upkgs.begin(), upkgs.end(), ostream_iterator<string>(cout, " "));
-    cout << endl;
+    glogger << endl;
 
     ret = 0;
     string upkgstr;
 
     strutils::join(upkgs, " ", upkgstr);
 
-    cout << "upkgstr:" << upkgstr << endl;
+    glogger << "upkgstr:" << upkgstr << endl;
 
     string cmd;
 #ifdef RHEL
@@ -272,20 +273,20 @@ void ScriptCommand::initscripts()
                 break;
         }
     }
-    sort(shellscripts.begin(), shellscripts.end());
 
+    sort(shellscripts.begin(), shellscripts.end());
     sort(pythonscripts.begin(), pythonscripts.end());
 
-    cout << "shell: ";
+    glogger << "shell: ";
 
     copy(shellscripts.begin(), shellscripts.end(),
             ostream_iterator<string>(cout, " "));
-    cout<< endl; 
+    glogger<< endl; 
 
-    cout << "python: ";
+    glogger << "python: ";
     copy(pythonscripts.begin(), pythonscripts.end(),
             ostream_iterator<string>(cout, " "));
-    cout<< endl; 
+    glogger<< endl; 
 }
 
 int ScriptCommand::execute()
@@ -335,12 +336,12 @@ deque<Command*> CommandExecuter::commands = deque<Command*>();
 void CommandExecuter::extractmsg(char* recvbuf, int bufflen, sockaddr_in& saddr, string& myname)
 {
     string serveraddr(inet_ntoa(saddr.sin_addr));
-    cout << "serveraddr:" << serveraddr << endl;
+    glogger << "serveraddr:" << serveraddr << endl;
 
     Message* pmsg = (Message*)recvbuf;
-    cout << "cmd:" << pmsg->cmd << endl;
-    cout << "sdlen:" << pmsg->sdlen << endl;
-    cout << "tag:" << pmsg->tag << endl;
+    glogger << "cmd:" << pmsg->cmd << endl;
+    glogger << "sdlen:" << pmsg->sdlen << endl;
+    glogger << "tag:" << pmsg->tag << endl;
 
     char buff[256];
 
@@ -351,14 +352,19 @@ void CommandExecuter::extractmsg(char* recvbuf, int bufflen, sockaddr_in& saddr,
     strcpy(buff, pmsg->tag + pmsg->sdlen);
     string mstr(buff);
 
-    cout << "share dir:" << sharedir << endl;
-    cout << "machines:"  << mstr << endl;
-    vector<string> machines;
-    strutils::split(mstr, ",", machines);
-
-    if(!strutils::inlist(machines, myname))
+    glogger << "share dir:" << sharedir << endl;
+    glogger << "machines:"  << mstr << endl;
+    
+    if(!mstr.empty())
     {
-        return;
+        vector<string> machines;
+        strutils::split(mstr, ",", machines);
+        glogger << "machines:" << endl;
+
+        if(!strutils::inlist(machines, myname))
+        {
+            return;
+        }
     }
 
     deque<Command*> tempqueue;
@@ -387,9 +393,14 @@ void CommandExecuter::extractmsg(char* recvbuf, int bufflen, sockaddr_in& saddr,
 
     string plugindir;
     int ret = gparser->getvalue("plugindir", plugindir);
-    cout << "plugindir: " << plugindir << endl;
+    glogger << "plugindir: " << plugindir << endl;
     pcmd = ScriptCommand::createcmd(plugindir);
     tempqueue.push_back(pcmd);
+
+    pthread_mutex_lock(&lock);
+    copy(tempqueue.begin(), tempqueue.end(), back_inserter(commands));
+    pthread_cond_signal(&cond);
+    pthread_mutex_unlock(&lock);
 }
 
 void* CommandExecuter::executecmd(void* args)

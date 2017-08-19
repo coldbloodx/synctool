@@ -14,13 +14,17 @@ class logutils: public LASingletonTemplateBase<logutils>
         int errlog(const char *format, ...);
         int warnlog(const char *format, ...);
         int debuglog(const char *format, ...);
+
         logutils& operator<<(char* str);
+        logutils& operator<<(string str);
+        logutils& operator<<(int lhs);
         
-        typedef ostream&  (*EOLTYPE)(ostream&);
-        logutils& operator<<(EOLTYPE eol)
+        typedef ostream&  (*eoltype)(ostream&);
+        logutils& operator<<(eoltype eol)
         {
             return *this;
         }
 };
 
+static logutils& glogger = logutils::get_instance_ref();
 #endif

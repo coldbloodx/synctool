@@ -14,6 +14,7 @@ using namespace std;
 #include "nfsutils.h"
 #include "strutils.h"
 #include "miscutils.h"
+#include "logutils.h"
 
 #ifdef RHEL
 static string svc = "nfs.service";
@@ -46,7 +47,7 @@ int nfsutils::nfsstatus()
 
 bool nfsutils::isexported(string sharedir)
 {
-    cout <<  "isexported " << endl;
+    glogger <<  "isexported " << endl;
     string cmd("exportfs |grep -w '" + sharedir +"'");
     int ret = system(cmd.c_str());
      
@@ -75,7 +76,7 @@ int nfsutils::confignfs(string sharedir, string nfsopts)
         if(strutils::startswith(*it, sharedir + " ")
                 || strutils::startswith(*it, sharedir + "\t"))
         {
-            cout << " in config nfs return" << endl;
+            glogger << " in config nfs return" << endl;
             return 0;
         }
     }
@@ -130,11 +131,11 @@ int nfsutils::mountnfs(string nfsloc, string sharedir,
 {
     string cmd("mount ");
 
-    cout << "here" << endl;
+    glogger << "here" << endl;
 
     cmd += mountopts + nfsloc + ":" + sharedir + " " + mpt; 
 
-    cout << "mount cmd: " << cmd << endl;
+    glogger << "mount cmd: " << cmd << endl;
 
     int ret = system(cmd.c_str());
 
@@ -163,7 +164,7 @@ bool nfsutils::ismounted(string nfsloc, string sharedir, string mpt)
     int nread = fread(buff, sizeof(char), 512, output);
     fclose(output);
 
-    cout << buff << endl;
+    glogger << buff << endl;
 
     string content(buff); 
     string mountstr = nfsloc+":"+sharedir + " on " + mpt;

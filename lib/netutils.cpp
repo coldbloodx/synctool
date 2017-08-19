@@ -1,10 +1,10 @@
-#include <sys/ioctl.h>
-#include <net/if.h>
+#include <unistd.h>
 #include <sys/types.h> 
+#include <net/if.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
+#include <sys/ioctl.h>
 
 #include <string>
 #include <iostream>
@@ -15,6 +15,7 @@ using namespace std;
 #include <stdlib.h>
 
 #include "netutils.h"
+#include "logutils.h"
 #include "configparser.h"
 
 int netutils::getnicbrdaddr(string& ifname, string& brdaddr)
@@ -56,8 +57,8 @@ void netutils::initdest(sockaddr_in& dest)
     int ret = gparser->getvalue("interface", interface);
     ret += gparser->getvalue("port", port);
 
-    cout << "interface:" << interface << endl;
-    cout << "port:" << port << endl;
+    glogger << "interface:" << interface << endl;
+    glogger << "port:" << port << endl;
 
     if(!ret)
     {
@@ -83,26 +84,26 @@ char* netutils::buildmsg(int argc, char** argv, int& bufflen)
     while ((opt = getopt(argc, argv, "fpum:")) != -1) {
         switch (opt) {
             case 'f':
-                cout << "f is set " << endl;
+                glogger << "f is set " << endl;
                 a = 1;
                 cmd = cmd | a;
                 break;
             case 'p':
-                cout << "p is set " << endl;
+                glogger << "p is set " << endl;
                 a = 1;
                 a = a << 1;
                 cmd = cmd | a;
 
                 break;
             case 'u':
-                cout << "u is set " <<endl;
+                glogger << "u is set " <<endl;
                 a = 1;
                 a = a << 2;
                 cmd = cmd | a;
                 break;
             case 'm':
                 machines = optarg;
-                cout << machines << endl;
+                glogger << machines << endl;
                 break;
             default: /* '?' */
                 cerr << "error" <<endl;
@@ -110,15 +111,15 @@ char* netutils::buildmsg(int argc, char** argv, int& bufflen)
         }
     }
 
-    cout << "cmd: " << cmd << endl;
+    glogger << "cmd: " << cmd << endl;
     string sharedir;
 
     int ret = gparser->getvalue("sharedir", sharedir);
     if(!ret)
     {
-        cout << "cannot get sharedir" << endl;
+        glogger << "cannot get sharedir" << endl;
     }
-    cout << "sharedir: " << sharedir << endl;
+    glogger << "sharedir: " << sharedir << endl;
 
     bufflen = sizeof(Message) + sharedir.length() + machines.length();
     char* pbuff = (char*)malloc(bufflen + 1);

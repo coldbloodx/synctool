@@ -10,6 +10,20 @@ using namespace std;
 
 static int size = 4096;
 
+logutils& logutils::operator<<(int lhs)
+{
+    syslog(LOG_INFO, "%d", lhs);
+    closelog();
+    return *this;
+}
+
+logutils& logutils::operator<<(string str)
+{
+    syslog(LOG_INFO, "%s", str.c_str()); 
+    closelog();
+    return *this;
+}
+
 logutils& logutils::operator<<(char* str)
 {
     syslog(LOG_INFO, "%s", str); 

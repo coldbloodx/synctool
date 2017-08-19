@@ -47,7 +47,7 @@ int strutils::endswith(string lhs, string rhs)
    {"a", "bc", "cc", "dd", "eff"}
    */
 
-int strutils::split(string inputstr, string separator,vector<string>& ret)
+int strutils::split(string inputstr, string separator, vector<string>& ret)
 {
     if(inputstr.size()==0 && separator.size()==0)
     {
@@ -90,6 +90,10 @@ int strutils::join(vector<string>& strvec, string separator, string& ret)
 
 bool strutils::inlist(vector<string>& strlist, string& key)
 {
+    if(strlist.empty())
+    {
+        return 0;
+    }
     for(vector<string>::iterator it = strlist.begin();
             it != strlist.end(); ++it)
     {
