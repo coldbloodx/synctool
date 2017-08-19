@@ -15,7 +15,7 @@ lasync: libs lasync.cpp
 	$(CXX) $(CXXFLAGS) lasync.cpp -o $@ 
 
 laclient: libs laclient.cpp
-	$(CXX) $(CXXFLAGS) laclient.cpp -o $@ 
+	$(CXX) $(CXXFLAGS) laclient.cpp -lpthread -o $@ 
 
 ut:
 	cd ut; $(MAKE)
